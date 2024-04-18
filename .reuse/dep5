@@ -1,0 +1,5 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: .
+Upstream-Contact: iTzFabregas <fabricio-sampaio@usp.br>
+Source: https://github.com/courselab/sys-i-lov-syssoft.git
+
