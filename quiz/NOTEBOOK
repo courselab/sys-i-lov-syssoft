@@ -1,3 +1,14 @@
 #    SPDX-FileCopyrightText: 2024 vNishimura <vitor.vian@usp.br>
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
+
+# p1
+The "main's" memory address is different in each execution of the program "p1.c" due to the ASLR (Address Space Layout Randomization), a computer security technique employed by operating systems and applications to randomly arrange the positions of key data areas, such as the base of the executable and the positions of libraries, heap, and stack, in a process's address space. This randomization helps prevent attackers from reliably predicting target addresses, making it harder to exploit vulnerabilities like buffer overflows and other types of memory corruption attacks.
+
+#p2
+
+When we first run the "p2" program, we gain access with the correct password "foo". But, if we use an incorrect password with enough length, the function "scanf", wrongly used in this case to read the input string, "invades" the stack's space where the variable "verified" is allocated. This vulnerability is called *Buffer Overflow* and allows the user to manipulate unauthorized memory. In this case, the string changes the int "verified" to a non-zero value, considered true in the code.
+
+To fix this vulnerability, analyzing only the code's scope, we can simply use the "fgets" function to read the input string. "fgets" specifies the maximum length of the string, ensuring that the string is allocated in a space destined to it and not overflowing other variables.
+
+In the second time we run the program, using the '-fstack-protector' flag, the program recognizes the "youshallnotpass" string as an incorrect password, but no stack smash is detected by the canary. This situation probably occured because the buffer overflow didn't changed the canary, but also didn`t changed the "verified" variable.
