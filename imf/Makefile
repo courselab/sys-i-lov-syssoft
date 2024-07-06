@@ -11,7 +11,20 @@
 ## Relevant rules.
 ## Update if necessary to solve the programming challenge.
 ##
+libfake.so: fake_strcmp.c
+	gcc --shared -fPIC fake_strcmp.c -o libfake.so -m32
 
+decrypt: libfake.so
+	@echo "pre-loading dynamic library to bypass the access token security check"
+	@echo "Please wait..."
+	export LD_LIBRARY_PATH=.
+	LD_PRELOAD=./libfake.so ./decode secret.cry
+
+clean: libfake.so
+	rm libfake.so
+
+.PHONY: decrypt
+## End of relevant rules to solve the challenge
 
 ## 
 ## Rules used by SYSeg.
@@ -60,7 +73,7 @@ clean-export:
 
 ## End of export rules.
 
-
+## 
 
 # Update docm4 files.
 #

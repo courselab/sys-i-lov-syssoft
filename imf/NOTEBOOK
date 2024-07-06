@@ -1,3 +1,119 @@
 #    SPDX-FileCopyrightText: 2024 vNishimura <vitor.vian@usp.br>
 #   
 #    SPDX-License-Identifier: GPL-3.0-or-later
+
+# Breaching security device report
+
+First, using the following command: 
+
+'objdump -d decode'
+
+We obtain the disassembled code of the program we desire to hack.
+Showing only the "main" function initial fragment:
+
+#################################################################
+ 0804928d <main>:
+ 804928d:	8d 4c 24 04          	lea    0x4(%esp),%ecx
+ 8049291:	83 e4 f0             	and    $0xfffffff0,%esp
+ 8049294:	ff 71 fc             	push   -0x4(%ecx)
+ 8049297:	55                   	push   %ebp
+ 8049298:	89 e5                	mov    %esp,%ebp
+ 804929a:	53                   	push   %ebx
+ 804929b:	51                   	push   %ecx
+ 804929c:	81 ec 20 02 00 00    	sub    $0x220,%esp
+ 80492a2:	89 cb                	mov    %ecx,%ebx
+ 80492a4:	8b 43 04             	mov    0x4(%ebx),%eax
+ 80492a7:	89 85 e4 fd ff ff    	mov    %eax,-0x21c(%ebp)
+ 80492ad:	65 a1 14 00 00 00    	mov    %gs:0x14,%eax
+ 80492b3:	89 45 f4             	mov    %eax,-0xc(%ebp)
+ 80492b6:	31 c0                	xor    %eax,%eax
+ 80492b8:	e8 b3 fd ff ff       	call   8049070 <hashcheck@plt>
+ 80492bd:	83 3b 01             	cmpl   $0x1,(%ebx)
+#################################################################
+
+In the following fragments, is possible to understand the program logic:
+ 
+Hash Check the program to avoid running after modifications:
+ 80492b8:	e8 b3 fd ff ff       	call   8049070 <hashcheck@plt>
+
+"printf" followed by a "scanf", indicating the part where the program asks for the access token and scans it:
+ 8049308:	e8 53 fd ff ff       	call   8049060 <printf@plt>
+ .
+ .
+ .
+ 804931f:	e8 1c fe ff ff       	call   8049140 <__isoc99_scanf@plt>
+
+Immediately after, there is a call of a "strcmp" function, where the user's input token is compared with the used token:
+ 804937c:	e8 bf fc ff ff       	call   8049040 <strcmp@plt>
+
+In sequence, there is a "printf" followed by a "exit", indicating the path followed when the "strcmp" returns that the strings aren't equal.
+ 804940f:	e8 dc fc ff ff       	call   80490f0 <fprintf@plt>
+ 8049414:	83 c4 10             	add    $0x10,%esp
+ 8049417:	83 ec 0c             	sub    $0xc,%esp
+ 804941a:	6a 01                	push   $0x1
+ 804941c:	e8 af fc ff ff       	call   80490d0 <exit@plt>
+
+ The other path, whem the strings are returned as equals, is a call of a "printf" and a call to "fgets", where the file is processed by the program and returned decrypted.
+ 8049449:	e8 12 fc ff ff       	call   8049060 <printf@plt>
+ 804944e:	83 c4 10             	add    $0x10,%esp
+ 8049451:	83 ec 04             	sub    $0x4,%esp
+ 8049454:	ff b5 f0 fd ff ff    	push   -0x210(%ebp)
+ 804945a:	68 00 01 00 00       	push   $0x100
+ 804945f:	8d 85 f4 fe ff ff    	lea    -0x10c(%ebp),%eax
+ 8049465:	50                   	push   %eax
+ 8049466:	e8 15 fc ff ff       	call   8049080 <fgets@plt>
+
+#################################################################
+
+Using the info obtained by the "objdump" command, we need a way to surpass the security check by the "strcmp" function, without changing the "decode" program, as described in the mission file.
+In the solution presented in this file, we will explore the 'dynamic libraries' vulnerability: considering that the program "decode" and it`s library "libcry" don't check changes in the dynamic libraries used, and that dynamic libraries aren`t concatenaded into the code, but loaded into memory and called during runtime, we can redefine the "strcmp" function to always return that the strings (or in this case the tokens) are equal.
+
+"
+#include <string.h>
+
+/*
+ * redefining strcmp function to always return 0 (strings are equal)
+ */
+
+int strcmp(const char * str1, const char * str2){                                             
+    return 0;
+} 
+"
+
+Creating the dynamic library:
+ gcc --shared -fPIC fake_strcmp.c -o libfake.so -m32
+
+Add current directory in the library path:
+ export LD_LIBRARY_PATH=.
+
+Pre-loading the library and running the decryption program:
+ LD_PRELOAD=./libfake.so ./decode secret.cry
+
+When prompted, type anything as the access token:
+ Access token: anything
+ https://drive.google.com/file/d/1n0w8dFS8zJ7flnAQI75uLkw40IzAVUdW
+
+DONE!!! The secret encrypted message in the "secret.cry" file was the following Google Drive link:
+ https://drive.google.com/file/d/1n0w8dFS8zJ7flnAQI75uLkw40IzAVUdW
+
+# Changes in the Makefile
+"
+libfake.so: fake_strcmp.c
+    gcc --shared -fPIC fake_strcmp.c -o libfake.so -m32
+  
+decrypt: libfake.so
+    @echo "pre-loading dynamic library to bypass the access token security check"
+    @echo "Please wait..."
+    export LD_LIBRARY_PATH=.
+    LD_PRELOAD=./libfake.so ./decode secret.cry
+ 
+clean: libfake.so
+    rm libfake.so                                       
+"
+Running "make decrypt" compiles the library and pre-loads it, running the decode program
+"make clean" removes the library ".so" file.
+
+# How to avoid in our systems
+- Use static libraries, avoiding the hash check to fail
+- Check all the dynamic libraries used by the critical programs 
+- Ensure that the libraries are from trusted sources that can't be changed by unauthorized personnel
