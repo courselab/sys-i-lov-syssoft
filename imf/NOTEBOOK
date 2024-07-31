@@ -117,3 +117,5 @@ Running "make decrypt" compiles the library and pre-loads it, running the decode
 - Use static libraries, avoiding the hash check to fail
 - Check all the dynamic libraries used by the critical programs 
 - Ensure that the libraries are from trusted sources that can't be changed by unauthorized personnel
+
+~~~>> 10

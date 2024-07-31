@@ -5,12 +5,16 @@
 # p1
 The "main's" memory address is different in each execution of the program "p1.c" due to the ASLR (Address Space Layout Randomization), a computer security technique employed by operating systems and applications to randomly arrange the positions of key data areas, such as the base of the executable and the positions of libraries, heap, and stack, in a process's address space. This randomization helps prevent attackers from reliably predicting target addresses, making it harder to exploit vulnerabilities like buffer overflows and other types of memory corruption attacks.
 
+~~~>> 2.5
+
 # p2
 When we first run the "p2" program, we gain access with the correct password "foo". But, if we use an incorrect password with enough length, the function "scanf", wrongly used in this case to read the input string, "invades" the stack's space where the variable "verified" is allocated. This vulnerability is called *Buffer Overflow* and allows the user to manipulate unauthorized memory. In this case, the string changes the int "verified" to a non-zero value, considered true in the code.
 
 To fix this vulnerability, analyzing only the code's scope, we can simply use the "fgets" function to read the input string. "fgets" specifies the maximum length of the string, ensuring that the string is allocated in a space destined to it and not overflowing other variables.
 
 In the second time we run the program, using the '-fstack-protector' flag, the program recognizes the "youshallnotpass" string as an incorrect password, but no stack smash is detected by the canary. This situation probably occured because the buffer overflow didn't changed the canary, but also didn`t changed the "verified" variable.
+
+~~~>> 2.5
 
 # p3
 ```
@@ -68,6 +72,8 @@ The third line in the foo and bar function are used to allocate bytes to the loc
 e)
 To ensure the return value in the eax register (32-bit) matches the new data type of the bar function, the instruction movsbl %al,%eax was added. This instruction expands the 1-byte value in al (likely a char) to fill all 4 bytes of eax.
 
+~~~>> 2.5
+
 # p4
 a)
 All results were 'Foo'
@@ -77,10 +83,14 @@ p4-v1 - 15020: include all code from p4, p4a and p4b
 p4-v2 - 14980: includes libp4.a (statically linked library)
 p4-v3 - 14924: dynamically links libp4.so, which contains only references to p4a and p4b
 
+~~~> Why including (i.e. linking) libp4.a results smaller than passing objects at the command line?
+
 c)
 p4-v1: bar and foo and listed as T
 p4-v2: only foo are listed as T
 p4-v3: both are undefined
+
+~~~> And that means.... ?
 
 d)
 The binaries p4-v1 and p4-v2 require the library libc.so.6, while p4-v3 requires both libc.so.6 and libp4.so.
@@ -115,3 +125,5 @@ Cons: Multiple copies of the library in the system
 Dynamic libraries:
 Pros: Ensures all applications benefit from bug fixes and improvements
 Cons: Different applications may require different versions of the library
+
+~~~>> 2.0
